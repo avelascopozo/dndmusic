@@ -42,28 +42,10 @@ export default function PlayMode({
 }: Props) {
   const soundRefs = useRef<Map<string, Howl>>(new Map())
   const moodRef = useRef<Howl | null>(null)
-  const preloadedMoods = useRef<Map<Mood, Howl[]>>(new Map())
   const [playingSounds, setPlayingSounds] = useState<Set<string>>(new Set())
-  const [moodLoading, setMoodLoading] = useState(false)
 
   const activeScene = scenes.find(s => s.id === activeSceneId)
   const { sounds: sceneSounds } = useSceneSounds(activeSceneId)
-
-  // Preload one track per mood when moodLibrary is available
-  useEffect(() => {
-    if (moodLibrary.length === 0) return
-    const moods: Mood[] = ['calm', 'mystery', 'tension', 'combat', 'victory', 'sadness']
-    moods.forEach(mood => {
-      const tracks = moodLibrary.filter(m => m.mood === mood)
-      if (tracks.length === 0) return
-      const howls = tracks.map(t => new Howl({ src: [t.file_url], loop: true, volume: 0, html5: true, preload: true }))
-      preloadedMoods.current.set(mood, howls)
-    })
-    return () => {
-      preloadedMoods.current.forEach(howls => howls.forEach(h => h.unload()))
-      preloadedMoods.current.clear()
-    }
-  }, [moodLibrary])
 
   // When the active scene changes, stop previous sounds and start autoplay sounds
   useEffect(() => {
@@ -119,21 +101,10 @@ export default function PlayMode({
 
     if (!activeMood) return
 
-    // Use preloaded Howl if available, otherwise create a new one
-    const preloaded = preloadedMoods.current.get(activeMood)
-    let howl: Howl
-    if (preloaded && preloaded.length > 0) {
-      howl = preloaded[Math.floor(Math.random() * preloaded.length)]
-      howl.volume(0)
-    } else {
-      const tracks = moodLibrary.filter(m => m.mood === activeMood)
-      if (tracks.length === 0) return
-      const track = tracks[Math.floor(Math.random() * tracks.length)]
-      howl = new Howl({ src: [track.file_url], loop: true, volume: 0, html5: true })
-    }
-
-    setMoodLoading(true)
-    howl.once('play', () => setMoodLoading(false))
+    const tracks = moodLibrary.filter(m => m.mood === activeMood)
+    if (tracks.length === 0) return
+    const track = tracks[Math.floor(Math.random() * tracks.length)]
+    const howl = new Howl({ src: [track.file_url], loop: true, volume: 0, html5: true })
     howl.play()
     howl.fade(0, 0.6, 1500)
     moodRef.current = howl
@@ -200,8 +171,7 @@ export default function PlayMode({
               >
                 <span className="text-lg">{cfg.emoji}</span>
                 {cfg.label}
-                {isActive && moodLoading && <span className="text-xs opacity-70 animate-pulse">⏳</span>}
-                {isActive && !moodLoading && <span className="text-xs opacity-70">●</span>}
+                {isActive && <span className="text-xs opacity-70">●</span>}
               </button>
             )
           })}
