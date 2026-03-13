@@ -1,9 +1,11 @@
 'use client'
 
 import { useState } from 'react'
+import { useRouter } from 'next/navigation'
 import { SoundLibraryItem, MoodLibraryItem, Mood } from '@/types'
 import PrepMode from './PrepMode'
 import PlayMode from './PlayMode'
+import { createClient } from '@/lib/supabase/client'
 
 export interface LocalScene {
   id: string
@@ -19,6 +21,7 @@ interface Props {
 
 export default function AppShell({ soundLibrary, moodLibrary }: Props) {
   const [mode, setMode] = useState<'prep' | 'play'>('prep')
+  const router = useRouter()
   const [scenes, setScenes] = useState<LocalScene[]>([])
   const [activeSceneId, setActiveSceneId] = useState<string | null>(null)
   const [activeMood, setActiveMood] = useState<Mood | null>(null)
@@ -57,6 +60,17 @@ export default function AppShell({ soundLibrary, moodLibrary }: Props) {
             🎮 Play
           </button>
         </div>
+
+        <button
+          onClick={async () => {
+            const supabase = createClient()
+            await supabase.auth.signOut()
+            router.push('/auth/login')
+          }}
+          className="text-xs text-stone-500 hover:text-stone-300 transition-colors px-2 py-1"
+        >
+          Salir
+        </button>
       </header>
 
       {/* Main content */}
