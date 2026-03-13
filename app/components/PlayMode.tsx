@@ -72,7 +72,7 @@ export default function PlayMode({
 
     sceneSounds.forEach(ss => {
       if (ss.sound.type === 'loop' && ss.autoplay) {
-        const howl = new Howl({ src: [ss.sound.file_url], loop: true, volume: 0.6 })
+        const howl = new Howl({ src: [ss.sound.file_url], loop: true, volume: 0.6, html5: true })
         howl.play()
         soundRefs.current.set(ss.sound_id, howl)
         newPlaying.add(ss.sound_id)
@@ -105,7 +105,7 @@ export default function PlayMode({
     if (tracks.length === 0) return
 
     const track = tracks[Math.floor(Math.random() * tracks.length)]
-    const howl = new Howl({ src: [track.file_url], loop: true, volume: 0 })
+    const howl = new Howl({ src: [track.file_url], loop: true, volume: 0, html5: true })
     howl.play()
     howl.fade(0, 0.6, 1500)
     moodRef.current = howl
@@ -128,11 +128,11 @@ export default function PlayMode({
       setPlayingSounds(prev => { const s = new Set(prev); s.delete(ss.sound_id); return s })
     } else {
       if (ss.sound.type === 'one-shot') {
-        const howl = new Howl({ src: [ss.sound.file_url], volume: 0.8 })
+        const howl = new Howl({ src: [ss.sound.file_url], volume: 0.8, html5: true })
         howl.play()
         // one-shots are not tracked as "playing"
       } else {
-        const howl = new Howl({ src: [ss.sound.file_url], loop: true, volume: 0.6 })
+        const howl = new Howl({ src: [ss.sound.file_url], loop: true, volume: 0.6, html5: true })
         howl.play()
         soundRefs.current.set(ss.sound_id, howl)
         setPlayingSounds(prev => new Set([...prev, ss.sound_id]))

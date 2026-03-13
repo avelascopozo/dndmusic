@@ -15,6 +15,7 @@ export class AudioEngine {
       loop: config.loop,
       volume: config.volume ?? 1.0,
       onend: config.onend,
+      html5: true, // avoids CORS issues with external audio URLs
     })
   }
 
