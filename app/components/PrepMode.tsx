@@ -1,18 +1,20 @@
 'use client'
 
 import { useState } from 'react'
-import { SoundLibraryItem } from '@/types'
-import { LocalScene } from './AppShell'
+import { SoundLibraryItem, Scene } from '@/types'
+import { useSceneSounds } from '@/lib/hooks/useSceneSounds'
 
 const SCENE_EMOJIS = ['🗺️', '🗡️', '🏰', '🍺', '🌲', '🏔️', '⚓', '🏛️', '🔥', '☠️']
 
 interface Props {
   soundLibrary: SoundLibraryItem[]
-  scenes: LocalScene[]
-  onScenesChange: (scenes: LocalScene[]) => void
+  scenes: Scene[]
+  onCreateScene: (name: string, emoji: string) => Promise<Scene | null>
+  onDeleteScene: (id: string) => Promise<void>
+  onToggleSessionActive: (id: string, active: boolean) => Promise<void>
 }
 
-export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props) {
+export default function PrepMode({ soundLibrary, scenes, onCreateScene, onDeleteScene, onToggleSessionActive }: Props) {
   const [selectedSceneId, setSelectedSceneId] = useState<string | null>(
     scenes[0]?.id ?? null
   )
@@ -20,62 +22,23 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
   const [newSceneName, setNewSceneName] = useState('')
   const [soundFilter, setSoundFilter] = useState<string>('all')
 
+  const { sounds: sceneSounds, addSound, removeSound, updateAutoplay } = useSceneSounds(selectedSceneId)
+
   const selectedScene = scenes.find(s => s.id === selectedSceneId)
 
-  function createScene() {
+  async function handleCreateScene() {
     if (!newSceneName.trim()) return
-    const scene: LocalScene = {
-      id: crypto.randomUUID(),
-      name: newSceneName.trim(),
-      emoji: SCENE_EMOJIS[scenes.length % SCENE_EMOJIS.length],
-      sounds: [],
+    const emoji = SCENE_EMOJIS[scenes.length % SCENE_EMOJIS.length]
+    const scene = await onCreateScene(newSceneName.trim(), emoji)
+    if (scene) {
+      setSelectedSceneId(scene.id)
+      setNewSceneName('')
     }
-    const updated = [...scenes, scene]
-    onScenesChange(updated)
-    setSelectedSceneId(scene.id)
-    setNewSceneName('')
   }
 
-  function deleteScene(id: string) {
-    const updated = scenes.filter(s => s.id !== id)
-    onScenesChange(updated)
-    if (selectedSceneId === id) setSelectedSceneId(updated[0]?.id ?? null)
-  }
-
-  function addSoundToScene(sound: SoundLibraryItem) {
-    if (!selectedScene) return
-    if (selectedScene.sounds.find(s => s.id === sound.id)) return
-    const updated = scenes.map(s =>
-      s.id === selectedScene.id
-        ? { ...s, sounds: [...s.sounds, { ...sound, autoplay: false }] }
-        : s
-    )
-    onScenesChange(updated)
-  }
-
-  function removeSoundFromScene(soundId: string) {
-    if (!selectedScene) return
-    const updated = scenes.map(s =>
-      s.id === selectedScene.id
-        ? { ...s, sounds: s.sounds.filter(snd => snd.id !== soundId) }
-        : s
-    )
-    onScenesChange(updated)
-  }
-
-  function toggleAutoplay(soundId: string) {
-    if (!selectedScene) return
-    const updated = scenes.map(s =>
-      s.id === selectedScene.id
-        ? {
-            ...s,
-            sounds: s.sounds.map(snd =>
-              snd.id === soundId ? { ...snd, autoplay: !snd.autoplay } : snd
-            ),
-          }
-        : s
-    )
-    onScenesChange(updated)
+  async function handleDeleteScene(id: string) {
+    await onDeleteScene(id)
+    if (selectedSceneId === id) setSelectedSceneId(scenes.find(s => s.id !== id)?.id ?? null)
   }
 
   const categories = ['all', ...Array.from(new Set(soundLibrary.map(s => s.category)))]
@@ -84,7 +47,7 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
     : soundLibrary.filter(s => s.category === soundFilter)
 
   const sceneHasSound = (soundId: string) =>
-    selectedScene?.sounds.some(s => s.id === soundId) ?? false
+    sceneSounds.some(s => s.sound_id === soundId)
 
   return (
     <div className="flex h-[calc(100vh-73px)]">
@@ -99,12 +62,12 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
               type="text"
               value={newSceneName}
               onChange={e => setNewSceneName(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && createScene()}
+              onKeyDown={e => e.key === 'Enter' && handleCreateScene()}
               placeholder="Nueva escena..."
               className="flex-1 bg-stone-800 text-stone-200 text-sm rounded px-3 py-2 border border-stone-700 placeholder-stone-600 focus:outline-none focus:border-amber-600 min-w-0"
             />
             <button
-              onClick={createScene}
+              onClick={handleCreateScene}
               disabled={!newSceneName.trim()}
               className="px-3 py-2 bg-amber-600 hover:bg-amber-500 disabled:opacity-40 text-stone-950 rounded text-sm font-bold transition-colors"
             >
@@ -131,9 +94,8 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
             >
               <span className="text-lg">{scene.emoji}</span>
               <span className="flex-1 text-sm font-medium truncate">{scene.name}</span>
-              <span className="text-xs text-stone-500">{scene.sounds.length}</span>
               <button
-                onClick={e => { e.stopPropagation(); deleteScene(scene.id) }}
+                onClick={e => { e.stopPropagation(); handleDeleteScene(scene.id) }}
                 className="opacity-0 group-hover:opacity-100 text-stone-600 hover:text-red-400 text-xs transition-opacity"
               >
                 ✕
@@ -163,7 +125,7 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
                     {selectedScene.name}
                   </h2>
                   <p className="text-xs text-stone-500">
-                    {selectedScene.sounds.length} sonido{selectedScene.sounds.length !== 1 ? 's' : ''}
+                    {sceneSounds.length} sonido{sceneSounds.length !== 1 ? 's' : ''}
                   </p>
                 </div>
               </div>
@@ -177,7 +139,7 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
 
             {/* Lista de sonidos */}
             <div className="flex-1 overflow-y-auto p-6">
-              {selectedScene.sounds.length === 0 ? (
+              {sceneSounds.length === 0 ? (
                 <div className="text-center text-stone-600 mt-16">
                   <p className="text-3xl mb-3">🔇</p>
                   <p>Sin sonidos aún. Añade sonidos de la biblioteca.</p>
@@ -190,38 +152,37 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
                     <span>Autoplay</span>
                     <span></span>
                   </div>
-                  {selectedScene.sounds.map(sound => (
+                  {sceneSounds.map(ss => (
                     <div
-                      key={sound.id}
+                      key={ss.id}
                       className="grid grid-cols-[1fr_auto_auto_auto] gap-4 items-center px-4 py-3 bg-stone-900 rounded-lg border border-stone-800 hover:border-stone-700 transition-colors"
                     >
                       <div className="flex items-center gap-3">
-                        <span className="text-xl">{sound.emoji}</span>
-                        <span className="text-stone-200 text-sm">{sound.name}</span>
+                        <span className="text-xl">{ss.sound.emoji}</span>
+                        <span className="text-stone-200 text-sm">{ss.sound.name}</span>
                       </div>
                       <span className={`text-xs px-2 py-1 rounded-full ${
-                        sound.type === 'loop'
+                        ss.sound.type === 'loop'
                           ? 'bg-blue-900/50 text-blue-300 border border-blue-800'
                           : 'bg-purple-900/50 text-purple-300 border border-purple-800'
                       }`}>
-                        {sound.type === 'loop' ? '🔄 Loop' : '⚡ One-shot'}
+                        {ss.sound.type === 'loop' ? '🔄 Loop' : '⚡ One-shot'}
                       </span>
                       <button
-                        onClick={() => toggleAutoplay(sound.id)}
-                        disabled={sound.type === 'one-shot'}
+                        onClick={() => updateAutoplay(ss.id, !ss.autoplay)}
+                        disabled={ss.sound.type === 'one-shot'}
                         className={`w-10 h-6 rounded-full transition-colors relative ${
-                          sound.autoplay && sound.type === 'loop'
+                          ss.autoplay && ss.sound.type === 'loop'
                             ? 'bg-amber-500'
                             : 'bg-stone-700'
                         } disabled:opacity-30 disabled:cursor-not-allowed`}
-                        title={sound.type === 'one-shot' ? 'Los one-shots no tienen autoplay' : ''}
                       >
                         <span className={`absolute top-0.5 w-5 h-5 bg-white rounded-full shadow transition-all ${
-                          sound.autoplay && sound.type === 'loop' ? 'left-4' : 'left-0.5'
+                          ss.autoplay && ss.sound.type === 'loop' ? 'left-4' : 'left-0.5'
                         }`} />
                       </button>
                       <button
-                        onClick={() => removeSoundFromScene(sound.id)}
+                        onClick={() => removeSound(ss.id)}
                         className="text-stone-600 hover:text-red-400 transition-colors text-sm"
                       >
                         ✕
@@ -257,7 +218,6 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
               </button>
             </div>
 
-            {/* Filtro por categoría */}
             <div className="px-6 py-3 border-b border-stone-800 flex gap-2 flex-wrap">
               {categories.map(cat => (
                 <button
@@ -280,7 +240,7 @@ export default function PrepMode({ soundLibrary, scenes, onScenesChange }: Props
                 return (
                   <button
                     key={sound.id}
-                    onClick={() => !inScene && addSoundToScene(sound)}
+                    onClick={() => !inScene && addSound(sound)}
                     disabled={inScene}
                     className={`w-full flex items-center gap-3 px-4 py-3 rounded-lg text-left transition-colors ${
                       inScene

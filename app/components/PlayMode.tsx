@@ -2,8 +2,8 @@
 
 import { useEffect, useRef, useState } from 'react'
 import { Howl } from 'howler'
-import { MoodLibraryItem, Mood } from '@/types'
-import { LocalScene } from './AppShell'
+import { MoodLibraryItem, Mood, Scene, SceneSound } from '@/types'
+import { useSceneSounds } from '@/lib/hooks/useSceneSounds'
 
 const MOOD_CONFIG: Record<Mood, { label: string; emoji: string; color: string }> = {
   calm:    { label: 'Calma',    emoji: '😌', color: 'bg-emerald-900/60 border-emerald-700 hover:border-emerald-500 text-emerald-300' },
@@ -24,12 +24,12 @@ const MOOD_ACTIVE: Record<Mood, string> = {
 }
 
 interface Props {
-  scenes: LocalScene[]
+  scenes: Scene[]
   moodLibrary: MoodLibraryItem[]
   activeSceneId: string | null
   activeMood: Mood | null
   onSceneChange: (id: string) => void
-  onMoodChange: (mood: Mood) => void
+  onMoodChange: (mood: Mood | null) => void
 }
 
 export default function PlayMode({
@@ -45,37 +45,52 @@ export default function PlayMode({
   const [playingSounds, setPlayingSounds] = useState<Set<string>>(new Set())
 
   const activeScene = scenes.find(s => s.id === activeSceneId)
+  const { sounds: sceneSounds } = useSceneSounds(activeSceneId)
 
-  // Cuando cambia la escena activa, detener sonidos anteriores y arrancar autoplay
+  // When the active scene changes, stop previous sounds and start autoplay sounds
   useEffect(() => {
-    // Detener todos los sonidos actuales
+    // Stop all current sounds
     soundRefs.current.forEach(howl => howl.stop())
     soundRefs.current.clear()
     setPlayingSounds(new Set())
 
-    if (!activeScene) return
+    if (!activeSceneId) return
+
+    // sceneSounds may not have loaded yet; the second effect below handles autoplay
+    // once sceneSounds is populated for the new scene.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [activeSceneId])
+
+  // When sceneSounds loads for the active scene, trigger autoplay
+  useEffect(() => {
+    if (!activeSceneId || sceneSounds.length === 0) return
+
+    // Only start autoplay if nothing is playing yet (i.e. freshly switched scene)
+    if (soundRefs.current.size > 0) return
 
     const newPlaying = new Set<string>()
 
-    activeScene.sounds.forEach(sound => {
-      if (sound.type === 'loop' && sound.autoplay) {
-        const howl = new Howl({ src: [sound.file_url], loop: true, volume: 0.6 })
+    sceneSounds.forEach(ss => {
+      if (ss.sound.type === 'loop' && ss.autoplay) {
+        const howl = new Howl({ src: [ss.sound.file_url], loop: true, volume: 0.6 })
         howl.play()
-        soundRefs.current.set(sound.id, howl)
-        newPlaying.add(sound.id)
+        soundRefs.current.set(ss.sound_id, howl)
+        newPlaying.add(ss.sound_id)
       }
     })
 
-    setPlayingSounds(newPlaying)
+    if (newPlaying.size > 0) {
+      setPlayingSounds(newPlaying)
+    }
 
     return () => {
       soundRefs.current.forEach(h => h.stop())
       soundRefs.current.clear()
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [activeSceneId])
+  }, [sceneSounds, activeSceneId])
 
-  // Cuando cambia el mood, cambiar la música
+  // When the mood changes, crossfade to the new mood track
   useEffect(() => {
     if (moodRef.current) {
       moodRef.current.fade(0.6, 0, 1500)
@@ -104,23 +119,23 @@ export default function PlayMode({
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [activeMood])
 
-  function toggleSound(sound: LocalScene['sounds'][number]) {
-    const existing = soundRefs.current.get(sound.id)
+  function toggleSound(ss: SceneSound) {
+    const existing = soundRefs.current.get(ss.sound_id)
 
     if (existing) {
       existing.stop()
-      soundRefs.current.delete(sound.id)
-      setPlayingSounds(prev => { const s = new Set(prev); s.delete(sound.id); return s })
+      soundRefs.current.delete(ss.sound_id)
+      setPlayingSounds(prev => { const s = new Set(prev); s.delete(ss.sound_id); return s })
     } else {
-      if (sound.type === 'one-shot') {
-        const howl = new Howl({ src: [sound.file_url], volume: 0.8 })
+      if (ss.sound.type === 'one-shot') {
+        const howl = new Howl({ src: [ss.sound.file_url], volume: 0.8 })
         howl.play()
-        // one-shots no se trackean como "playing"
+        // one-shots are not tracked as "playing"
       } else {
-        const howl = new Howl({ src: [sound.file_url], loop: true, volume: 0.6 })
+        const howl = new Howl({ src: [ss.sound.file_url], loop: true, volume: 0.6 })
         howl.play()
-        soundRefs.current.set(sound.id, howl)
-        setPlayingSounds(prev => new Set([...prev, sound.id]))
+        soundRefs.current.set(ss.sound_id, howl)
+        setPlayingSounds(prev => new Set([...prev, ss.sound_id]))
       }
     }
   }
@@ -133,7 +148,7 @@ export default function PlayMode({
       moodRef.current.stop()
       moodRef.current = null
     }
-    onMoodChange(null as unknown as Mood)
+    onMoodChange(null)
   }
 
   return (
@@ -150,7 +165,7 @@ export default function PlayMode({
             return (
               <button
                 key={mood}
-                onClick={() => onMoodChange(isActive ? null as unknown as Mood : mood)}
+                onClick={() => onMoodChange(isActive ? null : mood)}
                 className={`flex items-center gap-2 px-5 py-3 rounded-xl border text-sm font-semibold transition-all ${
                   isActive ? MOOD_ACTIVE[mood] : cfg.color
                 }`}
@@ -198,7 +213,6 @@ export default function PlayMode({
               <span className="text-xl">{scene.emoji}</span>
               <div>
                 <p className="text-sm font-medium leading-tight">{scene.name}</p>
-                <p className="text-xs text-stone-500">{scene.sounds.length} sonidos</p>
               </div>
               {activeSceneId === scene.id && (
                 <span className="ml-auto text-amber-400 text-xs">●</span>
@@ -233,19 +247,19 @@ export default function PlayMode({
                 </div>
               </div>
 
-              {activeScene.sounds.length === 0 ? (
+              {sceneSounds.length === 0 ? (
                 <p className="text-stone-600 text-sm">
                   Esta escena no tiene sonidos. Añádelos en modo Preparación.
                 </p>
               ) : (
                 <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-3">
-                  {activeScene.sounds.map(sound => {
-                    const isPlaying = playingSounds.has(sound.id)
-                    const isOneShot = sound.type === 'one-shot'
+                  {sceneSounds.map(ss => {
+                    const isPlaying = playingSounds.has(ss.sound_id)
+                    const isOneShot = ss.sound.type === 'one-shot'
                     return (
                       <button
-                        key={sound.id}
-                        onClick={() => toggleSound(sound)}
+                        key={ss.id}
+                        onClick={() => toggleSound(ss)}
                         className={`flex flex-col items-center gap-2 p-4 rounded-xl border transition-all ${
                           isPlaying
                             ? 'bg-amber-600/20 border-amber-500 text-amber-300 shadow-lg shadow-amber-900/30'
@@ -254,9 +268,9 @@ export default function PlayMode({
                             : 'bg-stone-900 border-stone-700 hover:border-stone-500 text-stone-300'
                         }`}
                       >
-                        <span className="text-3xl">{sound.emoji}</span>
+                        <span className="text-3xl">{ss.sound.emoji}</span>
                         <span className="text-xs text-center leading-tight font-medium">
-                          {sound.name}
+                          {ss.sound.name}
                         </span>
                         <span className={`text-xs px-2 py-0.5 rounded-full ${
                           isPlaying
@@ -267,7 +281,7 @@ export default function PlayMode({
                         }`}>
                           {isPlaying ? '▶ activo' : isOneShot ? '⚡ disparar' : '⏸ parado'}
                         </span>
-                        {sound.autoplay && !isOneShot && (
+                        {ss.autoplay && !isOneShot && (
                           <span className="text-xs text-emerald-600">auto</span>
                         )}
                       </button>
