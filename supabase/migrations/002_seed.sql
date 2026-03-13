@@ -60,39 +60,27 @@ INSERT INTO sound_library (name, category, type, emoji, file_url) VALUES
   -- BigSoundBank CC0: heavy chain sound effect
   ('Dungeon chains', 'castle', 'loop', '⛓️', 'https://bigsoundbank.com/UPLOAD/mp3/0359.mp3');
 
--- Mood music — all from FreePD collection archived at archive.org (CC0 / Public Domain)
--- Base URL: https://archive.org/download/freepd/
--- These URLs redirect (302) to CDN nodes — this is normal Internet Archive behaviour.
+-- Mood music — Kevin MacLeod (incompetech.com) — CC-BY 4.0
+-- Fast CDN, no redirects, reliable for production use
 
 INSERT INTO mood_library (mood, name, file_url) VALUES
-  -- Calm / peaceful
-  ('calm', 'Meadow Rest',      'https://archive.org/download/freepd/misc/Kalimba%20Relaxation%20Music.mp3'),
-  ('calm', 'Tavern Lute',      'https://archive.org/download/freepd/misc/Dancing%20at%20the%20Inn.mp3'),
-  ('calm', 'Gentle Strings',   'https://archive.org/download/freepd/misc/Elf%20Meditation.mp3'),
-
-  -- Mystery / dark atmospheric
-  ('mystery', 'Dark Corridors',  'https://archive.org/download/freepd/misc/Dark%20Hallway.mp3'),
-  ('mystery', 'Ancient Secrets', 'https://archive.org/download/freepd/scoring/Desert%20Fox%20Underscore.mp3'),
-  ('mystery', 'Whispering Fog',  'https://archive.org/download/freepd/misc/Ancient%20Winds.mp3'),
-  ('mystery', 'Haunted Hall',    'https://archive.org/download/freepd/misc/Cold%20Journey.mp3'),
-
-  -- Tension / suspenseful
-  ('tension', 'The Pursuit',      'https://archive.org/download/freepd/scoring/Beginning%20of%20Conflict.mp3'),
-  ('tension', 'Rising Dread',     'https://archive.org/download/freepd/scoring/Find%20Them.mp3'),
-  ('tension', 'Before the Storm', 'https://archive.org/download/freepd/scoring/The%20Drama.mp3'),
-  ('tension', 'Crumbling Hope',   'https://archive.org/download/freepd/scoring/Desert%20Fox.mp3'),
-
-  -- Combat / battle intense
-  ('combat', 'Clash of Steel', 'https://archive.org/download/freepd/epic/Black%20Knight.mp3'),
-  ('combat', 'Final Stand',    'https://archive.org/download/freepd/epic/Epic%20Boss%20Battle.mp3'),
-  ('combat', 'Dragon Fight',   'https://archive.org/download/freepd/epic/Battle%20Ready.mp3'),
-  ('combat', 'Boss Battle',    'https://archive.org/download/freepd/epic/Night%20Attack.mp3'),
-  ('combat', 'Siege',          'https://archive.org/download/freepd/epic/Hit%20n%20Smash.mp3'),
-
-  -- Victory / triumphant
-  ('victory', 'Hero''s Triumph', 'https://archive.org/download/freepd/epic/Heroic%20Adventure.mp3'),
-  ('victory', 'Glory March',     'https://archive.org/download/freepd/epic/Fanfare%20X.mp3'),
-
-  -- Sadness / melancholic
-  ('sadness', 'Fallen Comrade', 'https://archive.org/download/freepd/epic/Go%20On%20Without%20Me.mp3'),
-  ('sadness', 'Lost and Alone', 'https://archive.org/download/freepd/misc/Infinite%20Peace.mp3');
+  ('calm', 'Sneaky Snitch',       'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Sneaky%20Snitch.mp3'),
+  ('calm', 'Fluffing a Duck',     'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fluffing%20a%20Duck.mp3'),
+  ('calm', 'Local Forecast',      'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Local%20Forecast.mp3'),
+  ('mystery', 'Investigations',   'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Investigations.mp3'),
+  ('mystery', 'Wizardtorium',     'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Wizardtorium.mp3'),
+  ('mystery', 'Volatile Reaction','https://incompetech.com/music/royalty-free/mp3-royaltyfree/Volatile%20Reaction.mp3'),
+  ('mystery', 'Tempting Secrets', 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Tempting%20Secrets.mp3'),
+  ('tension', 'Darkest Child',    'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Darkest%20Child.mp3'),
+  ('tension', 'Ouroboros',        'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Ouroboros.mp3'),
+  ('tension', 'Anguish',          'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Anguish.mp3'),
+  ('tension', 'Deliberate Thought','https://incompetech.com/music/royalty-free/mp3-royaltyfree/Deliberate%20Thought.mp3'),
+  ('combat', 'Arcadia',           'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Arcadia.mp3'),
+  ('combat', 'Exhilarate',        'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Exhilarate.mp3'),
+  ('combat', 'Invariance',        'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Invariance.mp3'),
+  ('combat', 'Impact Allegretto', 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Impact%20Allegretto.mp3'),
+  ('combat', 'Drums of the Deep', 'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Drums%20of%20the%20Deep.mp3'),
+  ('victory', 'Fanfare for Space','https://incompetech.com/music/royalty-free/mp3-royaltyfree/Fanfare%20for%20Space.mp3'),
+  ('victory', 'Heroic Age',       'https://incompetech.com/music/royalty-free/mp3-royaltyfree/Heroic%20Age.mp3'),
+  ('sadness', 'Crossing the Chasm','https://incompetech.com/music/royalty-free/mp3-royaltyfree/Crossing%20the%20Chasm.mp3'),
+  ('sadness', 'At Rest',          'https://incompetech.com/music/royalty-free/mp3-royaltyfree/At%20Rest.mp3');
